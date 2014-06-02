@@ -46,6 +46,7 @@
    */
   function showError (err) {
     // TO DO - show errors :)
+    console.err(err);
   }
 
   // ==[ Studio ]===============================================================
@@ -323,7 +324,7 @@
    *
    */
   function initTemplates () {
-    
+
   }
 
   /**
@@ -346,7 +347,7 @@
       if (err)
         return showError(err);
 
-      $badge = $svg.cloneNode(true);
+      $badge = $svg;
 
       extractOptions();
       setCustomPalette($svg);
@@ -413,8 +414,9 @@
     var sheet = $stylesheet.sheet;
     document.head.removeChild($stylesheet);
 
-    for (var i = 0, l = sheet.rules.length; i < l; i++) {
-      var rule = sheet.rules[i];
+    var rules = sheet.rules || sheet.cssRules;
+    for (var i = 0, l = rules.length; i < l; i++) {
+      var rule = rules[i];
       var selector = rule.selectorText;
       if (/^\.color-/.test(selector)) {
         var key = selector.replace(/^\.color-/, '');
@@ -477,7 +479,7 @@
       $oldPalette.parentNode.removeChild($oldPalette);
     } else {
       var $defs = $badge.querySelector('defs') || document.createElement('defs');
-      
+
       if (!$defs.parentNode)
         $badge.insertBefore($defs, $badge.childNodes[0]);
 
@@ -527,7 +529,7 @@
    *
    */
   function initMasks () {
-    
+
   }
 
   function getCurrentMask () {
@@ -544,30 +546,25 @@
     var mask = getCurrentMask();
 
     if (!mask) {
-      return setTimeout(function () {
-        var $oldMask = $badge.getElementById('mask');
-        var $newMask = document.createElement('g');
-        $newMask.id = 'mask';
-
-        $oldMask.parentNode.insertBefore($newMask, $oldMask);
-        $oldMask.parentNode.removeChild($oldMask);
-
-        rasterize(callback);
-      }, 0);
+        var $svg = document.createElement('svg');
+        $svg.innerHTML = '<g id="mask"></g>';
+        return done(null, $svg);
     }
 
-    loadSVG(path + '/' + mask + '.svg', function (err, svg) {
+    loadSVG(path + '/' + mask + '.svg', done);
+
+    function done (err, $svg) {
       if (err)
         return showError(err);
 
-      var $oldMask = $badge.getElementById('mask');
-      var $newMask = svg.getElementById('mask').cloneNode(true);
+      var $oldMask = $badge.querySelector('#mask');
+      var $newMask = $svg.querySelector('#mask');
 
       $oldMask.parentNode.insertBefore($newMask, $oldMask);
       $oldMask.parentNode.removeChild($oldMask);
 
       rasterize(callback);
-    });
+    }
   }
 
   // ==[ Options ]==============================================================
@@ -652,7 +649,7 @@
    *
    */
   function initGlyphs () {
-    
+
   }
 
   /**
@@ -666,11 +663,16 @@
    *
    */
   function getCurrentGlyphValue () {
+    if (!$glyph.value)
+      return '';
+
     var $i = document.createElement('i');
     $i.className = 'fa fa-' + getCurrentGlyph();
     document.body.appendChild($i);
     var chr = window.getComputedStyle($i, ':before').content;
     document.body.removeChild($i);
+
+    chr = chr.replace(/"/g, '');
     return chr;
   }
 
@@ -689,24 +691,32 @@
   function rasterize (callback) {
     callback = cb(callback);
 
-    var svg = $badge;
+    var $svg = $badge.cloneNode(true);
     var glyph = getCurrentGlyphValue();
 
     var $canvas = document.createElement('canvas');
-    $canvas.width = parseInt(svg.getAttribute('width'));
-    $canvas.height = parseInt(svg.getAttribute('height'));
+    $canvas.width = parseInt($svg.getAttribute('width'));
+    $canvas.height = parseInt($svg.getAttribute('height'));
 
     var ctx = $canvas.getContext('2d');
     ctx.font = parseInt($canvas.width/3) + "px FontAwesome";
     ctx.fillStyle = getCurrentPalette().color('glyph');
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    var svg_xml = (new XMLSerializer()).serializeToString(svg);
+    var svg_xml = (new XMLSerializer()).serializeToString($svg);
+
+    /*
+    // This is the 'official' way of doing this. However, Firefox seems to have
+    // an issue referencing relative fragment URIs created by `createObjectURL`.
+    // So we're using a base64 encoding hack instead :( Worth noting that if
+    // there are non-standard unicode characters in the XML, it'll die a death.
 
     var DOMURL = window.URL || window.webkitURL || window;
-
     var blob = new Blob([svg_xml], {type: 'image/svg+xml;charset=utf-8'});
     var url = DOMURL.createObjectURL(blob);
+    */
+
+    var url = 'data:image/svg+xml;base64,' + btoa(svg_xml);
 
     var $img = new Image();
     $img.onload = function() {
@@ -760,7 +770,7 @@
         return callback(new Error('Not valid SVG'));
 
       svgCache[path] = $doc.getElementsByTagName('svg')[0];
-      callback(null, svgCache[path]);
+      callback(null, svgCache[path].cloneNode(true));
     })
   }
 
