@@ -98,18 +98,44 @@
 
     $settings.addEventListener('change', function (event) {
       var $target = event.target;
+      handleUpdate($target.name, $target.value);
+    });
 
-      switch ($target.name) {
+    if (!window.localStorage)
+      return;
+
+    var $$options = $settings.querySelectorAll('select');
+    for (var i = 0, l = $$options.length; i < l; i++) {
+      var $option = $$options[i];
+      var name = $option.name;
+      var value = localStorage.getItem($option.name);
+      for (var j = 0; j < $option.length; j++) {
+        if ($option[j].value === value) {
+          $option.selectedIndex = j;
+          handleUpdate(name, value);
+          break;
+        }
+      }
+    }
+
+    function handleUpdate (name, value) {
+      switch (name) {
         case 'display':
-          document.body.className = $target.value;
+          document.body.className = value;
           break;
         case 'badge-size':
-          var scale = parseFloat($target.value);
+          var scale = parseFloat(value);
           ['WebkitTransform', 'MozTransform', 'transform'].forEach(function(transform) {
             $badgeRaster.style[transform] = 'scale(' + scale + ')';
           });
+          break;
+        default:
+          name = null;
       }
-    });
+
+      if (name && window.localStorage)
+        localStorage.setItem(name, value);
+    }
   }
 
   /**
