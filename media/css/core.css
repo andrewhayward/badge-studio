@@ -35,6 +35,7 @@ template {
 
 .wrapper {
   max-width: 320px;
+  min-width: 180px;
   margin: 0 auto;
   padding: 20px 600px 20px 20px;
   position: relative;
@@ -287,4 +288,28 @@ template {
   -webkit-transform-origin: 50% 25%;
   -moz-transform-origin: 50% 25%;
   transform-origin: 50% 25%;
+  max-width: 100%;
+}
+
+@media screen and (max-width: 800px) {
+  .wrapper {
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    padding: 5px;
+    margin: 0;
+  }
+  .header {
+    margin: 0 0 20px;
+  }
+  .content {
+    margin-right: 0;
+    padding-right: 20px;
+  }
+  #output {
+    float: none;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+  }
 }
