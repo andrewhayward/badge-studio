@@ -1,5 +1,7 @@
 (function () {
 
+  var SVG_NS = "http://www.w3.org/2000/svg";
+
   var svgCache = {};
   var options = {};
 
@@ -534,7 +536,7 @@
       $defs.appendChild($newPalette)
     }
 
-    rasterize(callback);
+    updateGlyph(callback);
   }
 
   /**
@@ -615,7 +617,7 @@
     var mask = getCurrentMask();
 
     if (!mask) {
-        var $svg = document.createElement('svg');
+        var $svg = document.createElementNS(SVG_NS, 'svg');
         $svg.innerHTML = '<g id="mask"></g>';
         return done(null, $svg);
     }
@@ -749,7 +751,80 @@
    *
    */
   function updateGlyph (callback) {
-    rasterize(callback);
+    var glyph = getCurrentGlyphValue();
+
+    if (!glyph)
+        return setGlyphImage(null, callback);
+
+    var $canvas = document.createElement('canvas');
+    $canvas.width = parseInt($badgeRaster.offsetWidth);
+    $canvas.height = parseInt($badgeRaster.offsetHeight);
+
+    var ctx = $canvas.getContext('2d');
+    ctx.font = parseInt($canvas.width / 3) + "px FontAwesome";
+    ctx.fillStyle = getCurrentPalette().color('glyph');
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText(glyph, $canvas.width / 2, $canvas.height / 2);
+
+    var $image = new Image();
+    $image.onload = function () {
+      setGlyphImage($image, callback);
+    }
+    $image.src = $canvas.toDataURL("image/png");
+    // $image.src = "./media/images/cheese.jpg";
+  }
+
+  /**
+   *
+   */
+  function setGlyphImage ($image, callback) {
+    callback = cb(callback);
+
+    var $newGlyph = document.createElementNS(SVG_NS, 'g');
+    $newGlyph.id = 'glyph';
+
+    if (!$image)
+      return done();
+
+    var iWidth = $image.width;
+    var iHeight = $image.height;
+
+    var rWidth = $badgeRaster.width;
+    var rHeight = $badgeRaster.height;
+
+    var box = $badge.getAttribute('viewBox').split(' ');
+
+    var bWidth = parseInt(box[2]);
+    var bHeight = parseInt(box[3]);
+
+    var cx = bWidth / 2 + parseInt(box[0]);
+    var cy = bHeight / 2 + parseInt(box[1]);
+
+    var gWidth = iWidth / (rWidth / bWidth);
+    var gHeight = iHeight / (rHeight / bHeight);
+    var gx = cx - (gWidth / 2);
+    var gy = cy - (gHeight / 2);
+
+    var $glyph = document.createElementNS(SVG_NS, 'image');
+    $glyph.setAttribute('x', gx);
+    $glyph.setAttribute('y', gy);
+    $glyph.setAttribute('width', gWidth);
+    $glyph.setAttribute('height', gHeight);
+    $glyph.setAttribute('xlink:href', $image.src);
+    $newGlyph.appendChild($glyph);
+
+    done();
+
+    function done () {
+      var $oldGlyph = $badge.getElementById('glyph');
+
+      $oldGlyph.parentNode.insertBefore($newGlyph, $oldGlyph);
+      $oldGlyph.parentNode.removeChild($oldGlyph);
+
+      rasterize(callback);
+    }
   }
 
   // ==[ Helpers ]==============================================================
@@ -761,17 +836,12 @@
     callback = cb(callback);
 
     var $svg = $badge.cloneNode(true);
-    var glyph = getCurrentGlyphValue();
 
     var $canvas = document.createElement('canvas');
     $canvas.width = parseInt($svg.getAttribute('width'));
     $canvas.height = parseInt($svg.getAttribute('height'));
 
     var ctx = $canvas.getContext('2d');
-    ctx.font = parseInt($canvas.width/3) + "px FontAwesome";
-    ctx.fillStyle = getCurrentPalette().color('glyph');
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
     var svg_xml = (new XMLSerializer()).serializeToString($svg);
 
     /*
@@ -790,7 +860,6 @@
     var $img = new Image();
     $img.onload = function() {
       ctx.drawImage($img, 0, 0);
-      ctx.fillText(glyph, $canvas.width / 2, $canvas.height / 2);
       $badgeRaster.src = $canvas.toDataURL("image/png");
       callback();
     }
