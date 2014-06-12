@@ -754,7 +754,7 @@
     var glyph = getCurrentGlyphValue();
 
     if (!glyph)
-        return setGlyphImage(null, callback);
+      return setGlyphImage(null, callback);
 
     var $canvas = document.createElement('canvas');
     $canvas.width = parseInt($badgeRaster.offsetWidth);
