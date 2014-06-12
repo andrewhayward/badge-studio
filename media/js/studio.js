@@ -898,7 +898,7 @@
    */
   function loadSVG (path, callback) {
     if (svgCache[path])
-      return callback(null, svgCache[path]);
+      return callback(null, svgCache[path].cloneNode(true));
 
     load(path, 'GET', function (err, $doc, request) {
       if (err)
