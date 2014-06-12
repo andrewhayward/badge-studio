@@ -618,7 +618,9 @@
 
     if (!mask) {
         var $svg = document.createElementNS(SVG_NS, 'svg');
-        $svg.innerHTML = '<g id="mask"></g>';
+        var $g = document.createElementNS(SVG_NS, 'g');
+        $g.id = 'mask';
+        $svg.appendChild($g);
         return done(null, $svg);
     }
 
