@@ -386,9 +386,16 @@
   // ==[ Palettes ]=============================================================
 
   function Palette (colors) {
-    this._colors = colors || {};
+    this._colors = {};
+    if (colors) {
+      for (var color in colors) {
+        if (colors.hasOwnProperty(color)) {
+          this._colors[color] = Palette.parseColor(colors[color]);
+        }
+      }
+    }
     if (!this._colors.hasOwnProperty('glyph'))
-      this._colors['glyph'] = '#000';
+      this._colors['glyph'] = '#000000';
   }
 
   Palette.prototype.toNode = function (id) {
@@ -412,6 +419,15 @@
 
   Palette.prototype.color = function (name) {
     return this._colors[name] || '#000';
+  }
+
+  Palette.parseColor = function (str) {
+    // Should probably be a bit more robust about this!
+    if (!/^#[a-f0-9]{3}$/i.test(str))
+      return str.toLowerCase();
+    return '#' + str.charAt(1) + str.charAt(1)
+               + str.charAt(2) + str.charAt(2)
+               + str.charAt(3) + str.charAt(3);
   }
 
   Palette.fromDataset = function (dataset) {
@@ -459,17 +475,19 @@
    */
   function initPalettes () {
     var $custom = document.createElement('option');
+    $custom.disabled = true;
     $custom.value = 'custom';
     $custom.text = 'Custom';
+    $custom.id = 'custom-color-option';
     $palette.options.add($custom);
 
     var $container = document.getElementById('custom-palette');
-    $container.style.display = 'none';
 
     $palette.addEventListener('change', function () {
       var isCustom = (this.options[this.selectedIndex] === $custom);
-      $container.style.display = (isCustom ? '' : 'none');
+      $custom.disabled = !isCustom;
 
+      setCustomColors();
       updatePalette();
     });
 
@@ -478,9 +496,13 @@
     $container.addEventListener('change', function (event) {
       var $input = event.target;
       $custom.setAttribute('data-color-'+$input.name, $input.value);
+      $custom.disabled = false;
+      $palette.selectedIndex = $palette.options.length - 1;
 
       updatePalette();
     });
+
+    setCustomColors();
   }
 
   /**
@@ -522,7 +544,6 @@
     callback = cb(callback);
 
     var colors = Palette.fromSVG($svg).colors();
-    var palette = Palette.fromDataset($palette.options[$palette.options.length-1].dataset);
 
     var $container = document.getElementById('custom-palette');
     var display = $container.style.display;
@@ -535,11 +556,11 @@
       var label = name.replace(/(^|-)(\w)/g, function (m, x, c) {
         return (x ? ' ' : '') + c.toUpperCase();
       });
-      var value = palette.color(name);
+
       $container.appendChild(importTemplate('custom-color', function ($template) {
         var $input = $template.querySelector('input');
         $input.name = name;
-        $input.value = value;
+        $input.id = 'custom-color-picker-' + name;
         var $label = $template.querySelector('span');
         $label.textContent = label;
       }));
@@ -547,6 +568,28 @@
 
     if (colors.length)
       $container.style.display = display;
+
+    setCustomColors();
+  }
+
+  /**
+   *
+   */
+  function setCustomColors () {
+    var $custom = document.getElementById('custom-color-option');
+    var $option = $palette.options[$palette.selectedIndex];
+    var palette = Palette.fromDataset($option.dataset);
+    var colors = palette.colors();
+
+    for (var i = 0, l = colors.length; i < l; i++) {
+      var colorName = colors[i];
+      var colorValue = palette.color(colorName);
+      $custom.setAttribute('data-color-' + colorName, colorValue);
+      var $input = document.getElementById('custom-color-picker-' + colorName);
+      if ($input) {
+        $input.value = colorValue;
+      }
+    }
   }
 
   // ==[ Masks ]================================================================
