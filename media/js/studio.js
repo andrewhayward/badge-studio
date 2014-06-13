@@ -774,6 +774,10 @@
     ctx.fillStyle = getCurrentPalette().color('glyph');
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.shadowBlur = 5;
 
     ctx.fillText(glyph, $canvas.width / 2, $canvas.height / 2);
 
