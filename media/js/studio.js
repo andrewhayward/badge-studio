@@ -318,6 +318,13 @@
       event.stopPropagation();
       $filter.focus();
     }, true);
+
+    $glyph.addEventListener('change', function (event) {
+      var $selectorItem = document.getElementById('glyph-selector-item-' + this.value);
+      if ($selectorItem) {
+        $selectorItem.click();
+      }
+    });
   }
 
   /**
