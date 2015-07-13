@@ -752,7 +752,7 @@
     var chr = window.getComputedStyle($i, ':before').content;
     document.body.removeChild($i);
 
-    chr = chr.replace(/"/g, '');
+    chr = chr.replace(/["']/g, '');
     return chr;
   }
 
